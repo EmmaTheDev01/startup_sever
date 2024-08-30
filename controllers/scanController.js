@@ -1,17 +1,34 @@
 import Scan from "../models/Scan.js";
-import axios from 'axios'; // Ensure axios is installed
+import axios from 'axios';
 
-const VIRUSTOTAL_API_KEY = process.env.VIRUSTOTAL_API_KEY; // Store your API key in environment variables
+const VIRUSTOTAL_API_KEY = process.env.VIRUSTOTAL_API_KEY;
 
 // Function to scan a URL with VirusTotal
 const scanUrlWithVirusTotal = async (url) => {
   try {
-    const response = await axios.post('https://www.virustotal.com/api/v3/urls', { url: url }, {
+    // First, encode the URL to base64
+    const encodedUrl = Buffer.from(url).toString('base64');
+
+    // Submit URL for scanning
+    const response = await axios.post(`https://www.virustotal.com/api/v3/urls`, 
+      `url=${url}`,
+      {
+        headers: {
+          'x-apikey': VIRUSTOTAL_API_KEY,
+          'Content-Type': 'application/x-www-form-urlencoded'
+        },
+      }
+    );
+
+    // Retrieve scan results using the scan_id
+    const scanId = response.data.data.id;
+    const result = await axios.get(`https://www.virustotal.com/api/v3/analyses/${scanId}`, {
       headers: {
         'x-apikey': VIRUSTOTAL_API_KEY,
       },
     });
-    return response.data;
+
+    return result.data;
   } catch (error) {
     console.error('Error with VirusTotal URL scan:', error);
     throw new Error('VirusTotal URL scan failed');
@@ -21,7 +38,8 @@ const scanUrlWithVirusTotal = async (url) => {
 // Function to scan an IP with VirusTotal
 const scanIpWithVirusTotal = async (ip) => {
   try {
-    const response = await axios.post('https://www.virustotal.com/api/v3/ip_addresses', { ip: ip }, {
+    // Get IP address scan result
+    const response = await axios.get(`https://www.virustotal.com/api/v3/ip_addresses/${ip}`, {
       headers: {
         'x-apikey': VIRUSTOTAL_API_KEY,
       },
@@ -35,7 +53,7 @@ const scanIpWithVirusTotal = async (ip) => {
 
 // Create a new scan with URL or IP integration
 export const createScan = async (req, res) => {
-  const { url, ip } = req.body; // Assume URL or IP is provided in the request body
+  const { url, ip } = req.body;
 
   if (!url && !ip) {
     return res.status(400).json({
@@ -48,14 +66,12 @@ export const createScan = async (req, res) => {
     let scanResult;
 
     if (url) {
-      // Scan URL with VirusTotal
       scanResult = await scanUrlWithVirusTotal(url);
     } else if (ip) {
-      // Scan IP with VirusTotal
       scanResult = await scanIpWithVirusTotal(ip);
     }
 
-    // Check if scan results indicate a clean status (simple example)
+    // Check if scan results indicate a clean status
     const isClean = scanResult.data.attributes.last_analysis_stats.malicious === 0;
 
     if (isClean) {
@@ -120,7 +136,6 @@ export const findAllScans = async (req, res) => {
   const page = parseInt(req.query.page) || 0;
   try {
     const allScans = await Scan.find({})
-      .populate('reviews')
       .skip(page * 8)
       .limit(8);
     const count = await Scan.countDocuments({});
@@ -142,7 +157,6 @@ export const findAllScans = async (req, res) => {
 export const getFeaturedScans = async (req, res) => {
   try {
     const featuredScans = await Scan.find({ featured: true })
-      .populate('reviews')
       .limit(8);
     if (featuredScans.length > 0) {
       res.status(200).json({

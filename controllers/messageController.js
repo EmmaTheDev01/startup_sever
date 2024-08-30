@@ -106,7 +106,8 @@ export const createMessage = async (req, res) => {
         res.status(200).json({
             success: true,
             message: "Message saved successfully",
-            data: savedMessage
+            data: savedMessage,
+            chatbotResponse
         });
     } catch (err) {
         res.status(500).json({

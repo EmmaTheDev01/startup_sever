@@ -1,5 +1,5 @@
 import Scan from "../models/Scan.js";
-import axios from 'axios';
+import axios from "axios";
 
 const VIRUSTOTAL_API_KEY = process.env.VIRUSTOTAL_API_KEY;
 
@@ -7,31 +7,35 @@ const VIRUSTOTAL_API_KEY = process.env.VIRUSTOTAL_API_KEY;
 const scanUrlWithVirusTotal = async (url) => {
   try {
     // First, encode the URL to base64
-    const encodedUrl = Buffer.from(url).toString('base64');
+    const encodedUrl = Buffer.from(url).toString("base64");
 
     // Submit URL for scanning
-    const response = await axios.post(`https://www.virustotal.com/api/v3/urls`, 
+    const response = await axios.post(
+      `https://www.virustotal.com/api/v3/urls`,
       `url=${url}`,
       {
         headers: {
-          'x-apikey': VIRUSTOTAL_API_KEY,
-          'Content-Type': 'application/x-www-form-urlencoded'
+          "x-apikey": VIRUSTOTAL_API_KEY,
+          "Content-Type": "application/x-www-form-urlencoded",
         },
       }
     );
 
     // Retrieve scan results using the scan_id
     const scanId = response.data.data.id;
-    const result = await axios.get(`https://www.virustotal.com/api/v3/analyses/${scanId}`, {
-      headers: {
-        'x-apikey': VIRUSTOTAL_API_KEY,
-      },
-    });
+    const result = await axios.get(
+      `https://www.virustotal.com/api/v3/analyses/${scanId}`,
+      {
+        headers: {
+          "x-apikey": VIRUSTOTAL_API_KEY,
+        },
+      }
+    );
 
     return result.data;
   } catch (error) {
-    console.error('Error with VirusTotal URL scan:', error);
-    throw new Error('VirusTotal URL scan failed');
+    console.error("Error with VirusTotal URL scan:", error);
+    throw new Error("VirusTotal URL scan failed");
   }
 };
 
@@ -39,15 +43,18 @@ const scanUrlWithVirusTotal = async (url) => {
 const scanIpWithVirusTotal = async (ip) => {
   try {
     // Get IP address scan result
-    const response = await axios.get(`https://www.virustotal.com/api/v3/ip_addresses/${ip}`, {
-      headers: {
-        'x-apikey': VIRUSTOTAL_API_KEY,
-      },
-    });
+    const response = await axios.get(
+      `https://www.virustotal.com/api/v3/ip_addresses/${ip}`,
+      {
+        headers: {
+          "x-apikey": VIRUSTOTAL_API_KEY,
+        },
+      }
+    );
     return response.data;
   } catch (error) {
-    console.error('Error with VirusTotal IP scan:', error);
-    throw new Error('VirusTotal IP scan failed');
+    console.error("Error with VirusTotal IP scan:", error);
+    throw new Error("VirusTotal IP scan failed");
   }
 };
 
@@ -58,7 +65,7 @@ export const createScan = async (req, res) => {
   if (!url && !ip) {
     return res.status(400).json({
       success: false,
-      message: 'URL or IP is required',
+      message: "URL or IP is required",
     });
   }
 
@@ -72,26 +79,27 @@ export const createScan = async (req, res) => {
     }
 
     // Check if scan results indicate a clean status
-    const isClean = scanResult.data.attributes.last_analysis_stats.malicious === 0;
+    const isClean =
+      scanResult.data.attributes.last_analysis_stats.malicious === 0;
 
     if (isClean) {
       const newScan = new Scan(req.body);
       const savedScan = await newScan.save();
       res.status(200).json({
         success: true,
-        message: 'Scan saved successfully',
+        message: "Scan saved successfully",
         data: savedScan,
       });
     } else {
       res.status(400).json({
         success: false,
-        message: 'Malicious content detected. Scan not saved.',
+        message: "Malicious content detected. Scan not saved.",
       });
     }
   } catch (err) {
     res.status(500).json({
       success: false,
-      message: 'Scan not saved, try again',
+      message: "Scan not saved, try again",
     });
   }
 };
@@ -103,12 +111,12 @@ export const deleteScan = async (req, res) => {
     await Scan.findByIdAndDelete(id);
     res.status(200).json({
       success: true,
-      message: 'Scan deleted successfully',
+      message: "Scan deleted successfully",
     });
   } catch (err) {
     res.status(500).json({
       success: false,
-      message: 'Failed to delete scan',
+      message: "Failed to delete scan",
     });
   }
 };
@@ -120,13 +128,13 @@ export const findScan = async (req, res) => {
     const findSingleScan = await Scan.findById(id);
     res.status(200).json({
       success: true,
-      message: 'Scan details found',
+      message: "Scan details found",
       data: findSingleScan,
     });
   } catch (err) {
     res.status(404).json({
       success: false,
-      message: 'Cannot find the scan',
+      message: "Cannot find the scan",
     });
   }
 };
@@ -142,13 +150,13 @@ export const findAllScans = async (req, res) => {
     res.status(200).json({
       success: true,
       count,
-      message: 'All scans available',
+      message: "All scans available",
       data: allScans,
     });
   } catch (err) {
     res.status(404).json({
       success: false,
-      message: 'No scans available',
+      message: "No scans available",
     });
   }
 };
@@ -156,24 +164,23 @@ export const findAllScans = async (req, res) => {
 // Get featured scans
 export const getFeaturedScans = async (req, res) => {
   try {
-    const featuredScans = await Scan.find({ featured: true })
-      .limit(8);
+    const featuredScans = await Scan.find({ featured: true }).limit(8);
     if (featuredScans.length > 0) {
       res.status(200).json({
         success: true,
-        message: 'Featured scans',
+        message: "Featured scans",
         data: featuredScans,
       });
     } else {
       res.status(404).json({
         success: false,
-        message: 'No scans available',
+        message: "No scans available",
       });
     }
   } catch (err) {
     res.status(500).json({
       success: false,
-      message: 'An error occurred',
+      message: "An error occurred",
     });
   }
 };
@@ -184,13 +191,13 @@ export const getScanCounts = async (req, res) => {
     const scanCount = await Scan.estimatedDocumentCount();
     res.status(200).json({
       success: true,
-      message: 'Scan count retrieved',
+      message: "Scan count retrieved",
       data: scanCount,
     });
   } catch (err) {
     res.status(404).json({
       success: false,
-      message: 'Failed to retrieve scan count',
+      message: "Failed to retrieve scan count",
     });
   }
 };

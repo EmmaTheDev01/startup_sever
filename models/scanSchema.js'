@@ -1,0 +1,40 @@
+import mongoose from 'mongoose';
+
+const scanSchema = new mongoose.Schema(
+  {
+    url: {
+      type: String,
+      trim: true,
+      required: false, // Optional: only used if scanning a URL
+    },
+    ip: {
+      type: String,
+      trim: true,
+      required: false, // Optional: only used if scanning an IP
+    },
+    scanStatus: {
+      type: String,
+      enum: ['pending', 'completed', 'failed'],
+      default: 'pending',
+    },
+    lastScanDate: {
+      type: Date,
+    },
+    scanType: {
+      type: String,
+      enum: ['malware', 'metadata', 'steganography', 'vulnerability', 'port', 'ip'],
+      required: true, // Indicates the type of scan performed
+    },
+    scanResult: {
+      type: Map,
+      of: mongoose.Schema.Types.Mixed, // Store flexible scan results
+    },
+    isClean: {
+      type: Boolean,
+      default: true, // Indicates if the scan result is clean
+    },
+  },
+  { timestamps: true }
+);
+
+export default mongoose.model('Scan', scanSchema);
